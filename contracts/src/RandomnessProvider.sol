@@ -1,84 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {LibString} from "solmate/utils/LibString.sol";
+import {IRandomnessProvider} from "./interface/IRandomnessProvider.sol";
+import {IRANDAOStorage} from "./interface/IRANDAOStorage.sol";
 
-import {IFactRegistry} from "./vdf/IFactRegistry.sol";
-import {IRandomnessProvider} from "./IRandomnessProvider.sol";
+contract RandomnessProvider is IRandomnessProvider {
 
-/// @title Veedo VDF Provider Reference Implementation
-/// @notice This is an EXAMPLE contract of how to implement a VDF based
-///         randomness provider using Starkware's Veedo VDF. It is NOT suited for
-///         production use since Veedo isn't public.
-///
-///         Credit:
-///         This contract was heavily influenced by the Starkware contracts and sources
-///         referenced below.
-///
-///         References:
-///         - https://github.com/starkware-libs/veedo/blob/master/contracts/IStarkVerifier.sol
-///         - https://medium.com/starkware/presenting-veedo-e4bbff77c7ae
-///         - https://github.com/starkware-libs/veedo/blob/master/LICENSE
-contract VDFProvider is IRandomnessProvider {
-    using LibString for uint256;
+    IVDFVerifier public vdfVerifier;
+    IRANDAOStorage public randaoStorage;
 
-    /*//////////////////////////////////////////////////////////////
-                             CONSTANTS
-    //////////////////////////////////////////////////////////////*/
+    uint256 nIterations;
 
-    /// @notice The following are relevant constants for the Veedo VDF.
-    uint256 internal immutable nIterations;
-    uint256 internal constant PUBLIC_INPUT_SIZE = 5;
-    uint256 internal constant OFFSET_LOG_TRACE_LENGTH = 0;
-    uint256 internal constant OFFSET_VDF_OUTPUT_X = 1;
-    uint256 internal constant OFFSET_VDF_OUTPUT_Y = 2;
-    uint256 internal constant OFFSET_VDF_INPUT_X = 3;
-    uint256 internal constant OFFSET_VDF_INPUT_Y = 4;
-    uint256 internal constant PRIME = 0x30000003000000010000000000000001;
-    uint256 internal constant MAX_LOG_TRACE_LENGTH = 40;
-
-    /// @notice We use this rounding constant to batch users'
-    /// randomness requests to the closest multiple of ROUNDING_CONSTANT
-    /// in the future. Routing users to the same block allows
-    /// a single proof to service multiple users.
-    /// This is an arbitrary rounding constant and
-    /// should be influenced by the VDF time.
-    uint256 public constant ROUNDING_CONSTANT = 10;
-
-    /*//////////////////////////////////////////////////////////////
-                                ADDRESSES
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The address of the Fact Registry contract.
-    IFactRegistry public verifierContract;
-
-    /// @notice The address of the Blockhash Oracle contract.
-    IRandomnessProvider public randaoProvider;
-
-    /*//////////////////////////////////////////////////////////////
-                            RANDOMNESS STATE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice The randomness value, indexed by block number.
     mapping(uint256 => uint256) public blockNumToVDFRandomness;
-
-    /*//////////////////////////////////////////////////////////////
-                                ERRORS
-    //////////////////////////////////////////////////////////////*/
 
     error RandomnessNotAvailable(uint256);
     error RequestedRandomnessFromPast(uint256);
     error RequestedZeroRandomValues();
 
-    /*//////////////////////////////////////////////////////////////
-                            CONSTRUCTOR
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Sets RANDAO provider contract address.
-    /// @param _randaoProvider Address of RANDAO provider contract.
-    constructor(IFactRegistry _factRegistry, IRandomnessProvider _randaoProvider, uint256 _nIterations) {
+    constructor(IRANDAOStorage _randaoStorage, IVDFVerifier _vdfVerifier, uint256 _nIterations) {
         verifierContract = _factRegistry;
-        randaoProvider = _randaoProvider; // Must be a RANDAO randomnes provider.
+        randaoProvider = _randaoProvider;
         nIterations = _nIterations;
     }
 
@@ -183,22 +124,6 @@ contract VDFProvider is IRandomnessProvider {
     /// @notice Checks if the given randao value is valid for the given block number.
     function isValidRANDAO(uint256 blockNumber, uint256 randao) internal view returns (bool) {
         // Verify this is a valid ranDAO for this block number
-        return randaoProvider.fetchRandomness(blockNumber, 1)[0] == randao;
-    }
-
-    /// @notice Generates more random values using keccak given an initial seed.
-    /// View disclaimer about how the random seed (RANDAO) is generated in function above!
-    /// @param seed Initial value to base the rest of the random values on.
-    /// @param numRandomValues Number of values to return.
-    function generateMoreRandomValues(uint256 seed, uint256 numRandomValues) internal pure returns (uint256[] memory) {
-        uint256[] memory res = new uint256[](numRandomValues);
-        uint256 iter = seed;
-
-        for (uint256 i = 0; i < numRandomValues; i++) {
-            res[i] = iter;
-            iter = uint256(keccak256(abi.encodePacked(iter)));
-        }
-
-        return res;
+        return randaoStorage.getRANDAO(blockNum)[0] == randao;
     }
 }
