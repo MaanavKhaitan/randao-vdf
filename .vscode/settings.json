@@ -67,5 +67,6 @@
         "compare": "cpp",
         "concepts": "cpp",
         "algorithm": "cpp"
-    }
+    },
+    "solidity.defaultCompiler": "localNodeModule"
 }

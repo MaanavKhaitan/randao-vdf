@@ -6,9 +6,9 @@
 // This is an example contract to demonstrate how to integrate an application with the audited production release of AxiomV1.
 pragma solidity 0.8.19;
 
-import {IAxiomV1} from "@axiom-contracts/contracts/interfaces/IAxiomV1.sol";
-import {Ownable} from "@openzeppelin-contracts/access/Ownable.sol";
-import {RLPReader} from "utils/RLPReader.sol";
+import {IAxiomV1} from "./utils/IAxiomV1.sol";
+import {Ownable} from "./utils/Ownable.sol";
+import {RLPReader} from "./utils/RLPReader.sol";
 
 contract RANDAOStorage is Ownable {
     using RLPReader for RLPReader.RLPItem;
