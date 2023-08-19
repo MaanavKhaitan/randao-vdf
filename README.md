@@ -25,6 +25,8 @@ We are making the most secure randomness to date on ethereum.
 * Make sure Wesolski verifier smart contract: https://github.com/kilic/evmvdf/tree/master accepts Wesolowski prover's proofs. 
   * assume u can only accepttrue statements or something like that
 * Wrap Wesolowski prover in off-chain script that calls it and submits to blockchain 
+* We should create a mapping from security level, etc, to VDF paraemters. 
+  * at least we should determine this ourself.
 * Write RANDAO-submitter
   * make sure it works
 * Write main contract 
