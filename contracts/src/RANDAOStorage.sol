@@ -8,7 +8,7 @@ pragma solidity 0.8.19;
 
 import {IAxiomV1} from "@axiom-contracts/contracts/interfaces/IAxiomV1.sol";
 import {Ownable} from "@openzeppelin-contracts/access/Ownable.sol";
-import {RLPReader} from "utils/RLPReader.sol";
+import {RLPReader} from "./utils/RLPReader.sol";
 
 contract RANDAOStorage is Ownable {
     using RLPReader for RLPReader.RLPItem;
