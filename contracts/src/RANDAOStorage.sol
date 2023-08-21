@@ -14,7 +14,7 @@ contract RANDAOStorage is Ownable {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for bytes;
 
-    address public axiomAddress;
+    IAxiomV1 public axiomV1Contract;
     uint32 public mergeBlock;
 
     // mapping between blockNumber and prevRandao
@@ -24,25 +24,23 @@ contract RANDAOStorage is Ownable {
 
     event UpdateAxiomAddress(address newAddress);
 
+    // TODO: get the Axiom address from here: https://docs.axiom.xyz/transparency-and-security/contract-addresses
     constructor(address _axiomAddress, uint32 _mergeBlock) {
-        axiomAddress = _axiomAddress;
+        axiomV1Contract = IAxiomV1(_axiomAddress);
         mergeBlock = _mergeBlock;
         emit UpdateAxiomAddress(_axiomAddress);
     }
 
-    function updateAxiomAddress(address _axiomAddress) external onlyOwner {
-        axiomAddress = _axiomAddress;
-        emit UpdateAxiomAddress(_axiomAddress);
-    }
-
+    // TODO: A script will be calling this function
+    // Starter code for the script: https://cryptomarketpool.com/send-a-transaction-to-the-ethereum-blockchain-using-python-and-web3-py/
     function verifyRandao(IAxiomV1.BlockHashWitness calldata witness, bytes calldata header) external {
         if (block.number - witness.blockNumber <= 256) {
             require(
-                IAxiomV1(axiomAddress).isRecentBlockHashValid(witness.blockNumber, witness.claimedBlockHash),
+                axiomV1Contract.isRecentBlockHashValid(witness.blockNumber, witness.claimedBlockHash),
                 "Block hash was not validated in cache"
             );
         } else {
-            require(IAxiomV1(axiomAddress).isBlockHashValid(witness), "Block hash was not validated in cache");
+            require(axiomV1Contract.isBlockHashValid(witness), "Block hash was not validated in cache");
         }
 
         require(witness.blockNumber > mergeBlock, "prevRandao is not valid before merge block");

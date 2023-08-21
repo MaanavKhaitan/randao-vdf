@@ -13,11 +13,8 @@ interface IRandomnessProvider {
     event RandomnessFulfilled(uint256 indexed fulfilledBlock, uint256 randomSeed);
 
     /// @notice Requests randomness and returns the block number tied to the request.
-    function requestRandomness() external returns (uint256);
-
-    /// @notice Requests randomness from a specific block.
-    function requestRandomnessFromBlock(uint256 blockNum) external;
+    function requestRandomness(uint256 targetBlockNum) external;
 
     /// @notice Returns >= 1 random values from a specific block.
-    function fetchRandomness(uint256 blockNum, uint256 numberRandomValues) external view returns (uint256[] memory);
+    function fetchRandomness(uint256 blockNum) external view returns (uint256);
 }
