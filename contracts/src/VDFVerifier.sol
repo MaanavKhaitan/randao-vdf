@@ -1,404 +1,177 @@
-//SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: GPL-3.0
+/*
+    Copyright 2021 0KIMS association.
 
-contract VDFVerifier {
-  uint256 constant RSA_MODULUS_0 = 0x31f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5;
-  uint256 constant RSA_MODULUS_1 = 0xbc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b31;
-  uint256 constant RSA_MODULUS_2 = 0xf6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32;
-  uint256 constant RSA_MODULUS_3 = 0xf7e8daefd26c66fc02c479af89d64d373f442709439de66ceb955f3ea37d5159;
-  uint256 constant RSA_MODULUS_4 = 0xb4f14a04b51f7bfd781be4d1673164ba8eb991c2c4d730bbbe35f592bdef524a;
-  uint256 constant RSA_MODULUS_5 = 0xa31f5b0b7765ff8b44b4b6ffc93384b646eb09c7cf5e8592d40ea33c80039f35;
-  uint256 constant RSA_MODULUS_6 = 0x7ff0db8e1ea1189ec72f93d1650011bd721aeeacc2acde32a04107f0648c2813;
-  uint256 constant RSA_MODULUS_7 = 0xc7970ceedcc3b0754490201a7aa613cd73911081c790f5f1a8726f463550bb5b;
-  bytes RSA_MODULUS =
-    hex"c7970ceedcc3b0754490201a7aa613cd73911081c790f5f1a8726f463550bb5b7ff0db8e1ea1189ec72f93d1650011bd721aeeacc2acde32a04107f0648c2813a31f5b0b7765ff8b44b4b6ffc93384b646eb09c7cf5e8592d40ea33c80039f35b4f14a04b51f7bfd781be4d1673164ba8eb991c2c4d730bbbe35f592bdef524af7e8daefd26c66fc02c479af89d64d373f442709439de66ceb955f3ea37d5159f6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32bc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b3131f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5";
+    This file is generated with [snarkJS](https://github.com/iden3/snarkjs).
 
-  uint256 constant MILLER_RABIN_ROUNDS = 15;
-  uint256 constant MAX_NONCE = 65536;
+    snarkJS is a free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-  constructor() {}
+    snarkJS is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public
+    License for more details.
 
-  function verify(
-    bytes memory g,
-    bytes memory pi,
-    bytes memory y,
-    bytes memory q,
-    bytes memory dst,
-    uint256 nonce,
-    uint256 delay
-  ) public view returns (bool) {
-    require(validateNonce(nonce), "invalid nonce");
-    require(validateGroupElement(g), "invalid group element: g");
-    require(!isZeroGroupElement(g), "zero group element: g");
-    require(validateGroupElement(pi), "invalid group element: pi");
-    require(!isZeroGroupElement(pi), "zero group element: pi");
-    require(validateGroupElement(y), "invalid group element: y");
-    require(!isZeroGroupElement(y), "zero group element: y");
-    require(validateGroupElement(q), "invalid group element: helper q");
+    You should have received a copy of the GNU General Public License
+    along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
+*/
 
-    uint256 l = hashToPrime(g, y, nonce, dst);
-    if (l & 1 == 0) {
-      l += 1;
-    }
-    require(millerRabinPrimalityTest(l), "non prime challenge");
+pragma solidity >=0.7.0 <0.9.0;
 
-    uint256 r = modexp(2, delay, l);
-    bytes memory u1 = modexp(pi, l);
-    bytes memory u2 = modexp(g, r);
+contract Groth16Verifier {
+    // Scalar field size
+    uint256 constant r    = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    // Base field size
+    uint256 constant q   = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
-    require(mulModEqual(u1, u2, y, q), "verification failed");
-    return true;
-  }
+    // Verification Key data
+    uint256 constant alphax  = 20491192805390485299153009773594534940189261866228447918068658471970481763042;
+    uint256 constant alphay  = 9383485363053290200918347156157836566562967994039712273449902621266178545958;
+    uint256 constant betax1  = 4252822878758300859123897981450591353533073413197771768651442665752259397132;
+    uint256 constant betax2  = 6375614351688725206403948262868962793625744043794305715222011528459656738731;
+    uint256 constant betay1  = 21847035105528745403288232691147584728191162732299865338377159692350059136679;
+    uint256 constant betay2  = 10505242626370262277552901082094356697409835680220590971873171140371331206856;
+    uint256 constant gammax1 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
+    uint256 constant gammax2 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
+    uint256 constant gammay1 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
+    uint256 constant gammay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
+    uint256 constant deltax1 = 11231546878301658345859606517493263610531626295222183948123054388880807024546;
+    uint256 constant deltax2 = 10421588296813177511609642881195432801159969473249508979166218315982876024028;
+    uint256 constant deltay1 = 15636051106394502521514741483079309854361517493439787368843837359582233680316;
+    uint256 constant deltay2 = 19820237960767399957329090111331763841787388161412262068158258275584969388923;
 
-  function hashToPrime(
-    bytes memory g,
-    bytes memory y,
-    uint256 nonce,
-    bytes memory dst
-  ) internal pure returns (uint256) {
-    return uint256(keccak256(abi.encodePacked(dst, g, y, nonce)));
-  }
+    
+    uint256 constant IC0x = 3191014010508578865850307744619826067878374480874489688408999212657021561924;
+    uint256 constant IC0y = 1358086560862746911137867553611709879635795052069328003549826802931768591556;
+    
+    uint256 constant IC1x = 9116749294001307963682667980718691581111129174420693902332727972105488060334;
+    uint256 constant IC1y = 17461112932263804480719754269392976236185322767892579760348409872156072701995;
+    
+    uint256 constant IC2x = 4478667201660670788519402626335682605316030813208684042837717902317276509280;
+    uint256 constant IC2y = 16075005527894376143788821719764053901286153611783934756696862310764989280445;
+    
+ 
+    // Memory data
+    uint16 constant pVk = 0;
+    uint16 constant pPairing = 128;
 
-  // a * b =? N*q + y
-  function mulModEqual(
-    bytes memory a,
-    bytes memory b,
-    bytes memory y,
-    bytes memory q
-  ) internal view returns (bool) {
-    bytes memory u1 = mul2048(a, b);
-    bytes memory u2 = mul2048(q, RSA_MODULUS);
-    add2048to4096(u2, y);
-    return equalNumber(u1, u2);
-  }
+    uint16 constant pLastMem = 896;
 
-  function equalNumber(bytes memory a, bytes memory b) internal pure returns (bool res) {
-    uint256 len = a.length;
-    if (len == 0) {
-      return false;
-    }
-    if (len % 32 != 0) {
-      return false;
-    }
-    if (len != b.length) {
-      return false;
-    }
-    uint256 i = 0;
-    res = true;
-    assembly {
-      for {
-        let ptr := 32
-      } lt(ptr, add(len, 1)) {
-        ptr := add(ptr, 32)
-      } {
-        i := add(i, 1)
-        res := and(res, eq(mload(add(a, ptr)), mload(add(b, ptr))))
-      }
-    }
-  }
-
-  function millerRabinPrimalityTest(uint256 n) internal view returns (bool) {
-    // miller rabin primality tests code is
-    // borrowed from https://github.com/dankrad/rsa-bounty/blob/master/contract/rsa_bounty.sol
-
-    if (n < 4) {
-      return false;
-    }
-    if (n & 1 == 0) {
-      return false;
-    }
-    uint256 d = n - 1;
-    uint256 r = 0;
-    while (d & 1 == 0) {
-      d /= 2;
-      r += 1;
-    }
-    for (uint256 i = 0; i < MILLER_RABIN_ROUNDS; i++) {
-      // pick a random integer a in the range [2, n − 2]
-      uint256 a = (uint256(keccak256(abi.encodePacked(n, i))) % (n - 3)) + 2;
-      uint256 x = modexp(a, d, n);
-      if (x == 1 || x == n - 1) {
-        continue;
-      }
-      bool check_passed = false;
-      for (uint256 j = 1; j < r; j++) {
-        x = mulmod(x, x, n);
-        if (x == n - 1) {
-          check_passed = true;
-          break;
-        }
-      }
-      if (!check_passed) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function modexp(
-    uint256 base,
-    uint256 exponent,
-    uint256 modulus
-  ) internal view returns (uint256 res) {
-    assembly {
-      let mem := mload(0x40)
-
-      mstore(mem, 0x20)
-      mstore(add(mem, 0x20), 0x20)
-      mstore(add(mem, 0x40), 0x20)
-      mstore(add(mem, 0x60), base)
-      mstore(add(mem, 0x80), exponent)
-      mstore(add(mem, 0xa0), modulus)
-
-      let success := staticcall(sub(gas(), 2000), 5, mem, 0xc0, mem, 32)
-      switch success
-        case 0 {
-          revert(0x0, 0x0)
-        }
-      res := mload(mem)
-    }
-  }
-
-  function modexp(bytes memory base, uint256 exponent) internal view returns (bytes memory res) {
-    // bytes memory res // = new bytes(256);
-    assembly {
-      let mem := mload(0x40)
-
-      mstore(mem, 256) // <length_of_BASE> = 256
-      mstore(add(mem, 0x20), 0x20) // <length_of_EXPONENT> = 32
-      mstore(add(mem, 0x40), 256) // <length_of_MODULUS> = 256
-
-      mstore(add(mem, 0x60), mload(add(base, 0x20)))
-      mstore(add(mem, 0x80), mload(add(base, 0x40)))
-      mstore(add(mem, 0xa0), mload(add(base, 0x60)))
-      mstore(add(mem, 0xc0), mload(add(base, 0x80)))
-      mstore(add(mem, 0xe0), mload(add(base, 0xa0)))
-      mstore(add(mem, 0x100), mload(add(base, 0xc0)))
-      mstore(add(mem, 0x120), mload(add(base, 0xe0)))
-      mstore(add(mem, 0x140), mload(add(base, 0x100)))
-
-      mstore(add(mem, 0x160), exponent)
-
-      mstore(add(mem, 0x180), RSA_MODULUS_7)
-      mstore(add(mem, 0x1a0), RSA_MODULUS_6)
-      mstore(add(mem, 0x1c0), RSA_MODULUS_5)
-      mstore(add(mem, 0x1e0), RSA_MODULUS_4)
-      mstore(add(mem, 0x200), RSA_MODULUS_3)
-      mstore(add(mem, 0x220), RSA_MODULUS_2)
-      mstore(add(mem, 0x240), RSA_MODULUS_1)
-      mstore(add(mem, 0x260), RSA_MODULUS_0)
-
-      let success := staticcall(sub(gas(), 2000), 5, mem, 0x280, add(mem, 0x20), 256)
-      switch success
-        case 0 {
-          revert(0x0, 0x0)
-        }
-      // update free mem pointer
-      mstore(0x40, add(mem, 0x120))
-      res := mem
-    }
-  }
-
-  function mul2048(bytes memory a, bytes memory b) internal pure returns (bytes memory res) {
-    assembly {
-      let mem := mload(64)
-      mstore(mem, 512)
-      mstore(64, add(mem, 576))
-
-      let r := not(0)
-      let u1
-      let u2
-      let u3
-      let mm
-      let ai
-
-      // a0 * bj
-      {
-        ai := mload(add(a, 256)) // a0
-        u1 := mload(add(b, 256)) // b0
-
-        // a0 * b0
-        mm := mulmod(ai, u1, r)
-        u1 := mul(ai, u1) // La0b0
-        u2 := sub(sub(mm, u1), lt(mm, u1)) // Ha0b0
-
-        // store z0 = La0b0
-        mstore(add(mem, 512), u1)
-        // u1, u3 free, u2: Ha0b0
-
-        for {
-          let ptr := 224
-        } gt(ptr, 0) {
-          ptr := sub(ptr, 32)
-        } {
-          // a0 * bj
-          u1 := mload(add(b, ptr))
-          {
-            mm := mulmod(ai, u1, r)
-            u1 := mul(ai, u1) // La0bj
-            u3 := sub(sub(mm, u1), lt(mm, u1)) // Ha0bj
-          }
-
-          u1 := add(u1, u2) // zi = La0bj + Ha0b_(j-1)
-          u2 := add(u3, lt(u1, u2)) // Ha0bj = Ha0bj + c
-          mstore(add(mem, add(ptr, 256)), u1) // store zi
-          // carry u2 to next iter
-        }
-      }
-
-      mstore(add(256, mem), u2) // store z_(i+8)
-
-      // ai
-      // i from 1 to 7
-      for {
-        let optr := 224
-      } gt(optr, 0) {
-        optr := sub(optr, 32)
-      } {
-        mstore(add(add(optr, mem), 32), u2) // store z_(i+8)
-        ai := mload(add(a, optr)) // ai
-        u1 := mload(add(b, 256)) // b0
-        {
-          // ai * b0
-          mm := mulmod(ai, u1, r)
-          u1 := mul(ai, u1) // La1b0
-          u2 := sub(sub(mm, u1), lt(mm, u1)) // Haib0
-        }
-
-        mm := add(mem, add(optr, 256))
-        u3 := mload(mm) // load zi
-        u1 := add(u1, u3) // zi = zi + Laib0
-        u2 := add(u2, lt(u1, u3)) // Haib0' = Haib0 + c
-        mstore(mm, u1) // store zi
-        // u1, u3 free, u2: Haib0
-
-        // bj, j from 1 to 7
-        for {
-          let iptr := 224
-        } gt(iptr, 0) {
-          iptr := sub(iptr, 32)
-        } {
-          u1 := mload(add(b, iptr)) // bj
-          {
-            // ai * bj
-            mm := mulmod(ai, u1, r)
-            u1 := mul(ai, u1) // Laibj
-            u3 := sub(sub(mm, u1), lt(mm, u1)) // Haibj
-          }
-          u1 := add(u1, u2) // Laibj + Haib0
-          u3 := add(u3, lt(u1, u2)) // Haibj' = Haibj + c
-          mm := add(mem, add(iptr, optr))
-          u2 := mload(mm) // zi
-          u1 := add(u1, u2) // zi = zi + (Laibj + Haib0)
-          u2 := add(u3, lt(u1, u2)) // Haibj' = Ha1bj + c
-          mstore(mm, u1) // store zi
-          // carry u2 to next iter
-        }
-      }
-      mstore(add(32, mem), u2) // store z15
-      res := mem
-    }
-  }
-
-  function add2048to4096(bytes memory a, bytes memory b) internal pure {
-    assembly {
-      let a_ptr := add(a, 0x220)
-      let b_ptr := add(b, 0x120)
-      let c
-
-      let ai := mload(a_ptr)
-      let bi := mload(b_ptr)
-      ai := add(ai, bi)
-      c := lt(ai, bi)
-      mstore(a_ptr, ai)
-
-      for {
-        let off := 0x20
-      } lt(off, 0x101) {
-        off := add(off, 0x20)
-      } {
-        a_ptr := sub(a_ptr, 0x20)
-        b_ptr := sub(b_ptr, 0x20)
-        ai := mload(a_ptr)
-        bi := mload(b_ptr)
-
-        ai := add(ai, c)
-        c := lt(ai, c)
-        ai := add(ai, bi)
-        c := add(c, lt(ai, bi))
-        mstore(a_ptr, ai)
-      }
-
-      for {
-        let off := 0x0
-      } lt(off, 0x20) {
-        off := add(off, 0x20)
-      } {
-        a_ptr := sub(a_ptr, 0x20)
-        ai := mload(a_ptr)
-        ai := add(ai, c)
-        c := lt(ai, c)
-        mstore(a_ptr, ai)
-      }
-    }
-  }
-
-  function validateGroupElement(bytes memory e) internal pure returns (bool valid) {
-    if (e.length != 256) {
-      return false;
-    }
-    valid = true;
-    assembly {
-      let ei := mload(add(e, 0x20))
-      valid := lt(ei, RSA_MODULUS_7)
-      if eq(ei, RSA_MODULUS_7) {
-        ei := mload(add(e, 0x40))
-        valid := lt(ei, RSA_MODULUS_6)
-        if eq(ei, RSA_MODULUS_6) {
-          ei := mload(add(e, 0x60))
-          valid := lt(ei, RSA_MODULUS_5)
-          if eq(ei, RSA_MODULUS_5) {
-            ei := mload(add(e, 0x80))
-            valid := lt(ei, RSA_MODULUS_4)
-            if eq(ei, RSA_MODULUS_4) {
-              ei := mload(add(e, 0xa0))
-              valid := lt(ei, RSA_MODULUS_3)
-              if eq(ei, RSA_MODULUS_3) {
-                ei := mload(add(e, 0xc0))
-                valid := lt(ei, RSA_MODULUS_2)
-                if eq(ei, RSA_MODULUS_2) {
-                  ei := mload(add(e, 0xe0))
-                  valid := lt(ei, RSA_MODULUS_1)
-                  if eq(ei, RSA_MODULUS_1) {
-                    ei := mload(add(e, 0x100))
-                    valid := lt(ei, RSA_MODULUS_0)
-                  }
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[2] calldata _pubSignals) public view returns (bool) {
+        assembly {
+            function checkField(v) {
+                if iszero(lt(v, q)) {
+                    mstore(0, 0)
+                    return(0, 0x20)
                 }
-              }
             }
-          }
-        }
-      }
-    }
-  }
+            
+            // G1 function to multiply a G1 value(x,y) to value in an address
+            function g1_mulAccC(pR, x, y, s) {
+                let success
+                let mIn := mload(0x40)
+                mstore(mIn, x)
+                mstore(add(mIn, 32), y)
+                mstore(add(mIn, 64), s)
 
-  function isZeroGroupElement(bytes memory e) internal pure returns (bool isZero) {
-    if (e.length != 256) {
-      return false;
-    }
-    isZero = true;
-    assembly {
-      for {
-        let off := 0x20
-      } lt(off, 0x101) {
-        off := add(off, 0x20)
-      } {
-        isZero := and(isZero, eq(mload(add(e, off)), 0))
-      }
-    }
-  }
+                success := staticcall(sub(gas(), 2000), 7, mIn, 96, mIn, 64)
 
-  function validateNonce(uint256 nonce) internal pure returns (bool) {
-    return nonce < MAX_NONCE;
-  }
-}
+                if iszero(success) {
+                    mstore(0, 0)
+                    return(0, 0x20)
+                }
+
+                mstore(add(mIn, 64), mload(pR))
+                mstore(add(mIn, 96), mload(add(pR, 32)))
+
+                success := staticcall(sub(gas(), 2000), 6, mIn, 128, pR, 64)
+
+                if iszero(success) {
+                    mstore(0, 0)
+                    return(0, 0x20)
+                }
+            }
+
+            function checkPairing(pA, pB, pC, pubSignals, pMem) -> isOk {
+                let _pPairing := add(pMem, pPairing)
+                let _pVk := add(pMem, pVk)
+
+                mstore(_pVk, IC0x)
+                mstore(add(_pVk, 32), IC0y)
+
+                // Compute the linear combination vk_x
+                
+                g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
+                
+                g1_mulAccC(_pVk, IC2x, IC2y, calldataload(add(pubSignals, 32)))
+                
+
+                // -A
+                mstore(_pPairing, calldataload(pA))
+                mstore(add(_pPairing, 32), mod(sub(q, calldataload(add(pA, 32))), q))
+
+                // B
+                mstore(add(_pPairing, 64), calldataload(pB))
+                mstore(add(_pPairing, 96), calldataload(add(pB, 32)))
+                mstore(add(_pPairing, 128), calldataload(add(pB, 64)))
+                mstore(add(_pPairing, 160), calldataload(add(pB, 96)))
+
+                // alpha1
+                mstore(add(_pPairing, 192), alphax)
+                mstore(add(_pPairing, 224), alphay)
+
+                // beta2
+                mstore(add(_pPairing, 256), betax1)
+                mstore(add(_pPairing, 288), betax2)
+                mstore(add(_pPairing, 320), betay1)
+                mstore(add(_pPairing, 352), betay2)
+
+                // vk_x
+                mstore(add(_pPairing, 384), mload(add(pMem, pVk)))
+                mstore(add(_pPairing, 416), mload(add(pMem, add(pVk, 32))))
+
+
+                // gamma2
+                mstore(add(_pPairing, 448), gammax1)
+                mstore(add(_pPairing, 480), gammax2)
+                mstore(add(_pPairing, 512), gammay1)
+                mstore(add(_pPairing, 544), gammay2)
+
+                // C
+                mstore(add(_pPairing, 576), calldataload(pC))
+                mstore(add(_pPairing, 608), calldataload(add(pC, 32)))
+
+                // delta2
+                mstore(add(_pPairing, 640), deltax1)
+                mstore(add(_pPairing, 672), deltax2)
+                mstore(add(_pPairing, 704), deltay1)
+                mstore(add(_pPairing, 736), deltay2)
+
+
+                let success := staticcall(sub(gas(), 2000), 8, _pPairing, 768, _pPairing, 0x20)
+
+                isOk := and(success, mload(_pPairing))
+            }
+
+            let pMem := mload(0x40)
+            mstore(0x40, add(pMem, pLastMem))
+
+            // Validate that all evaluations ∈ F
+            
+            checkField(calldataload(add(_pubSignals, 0)))
+            
+            checkField(calldataload(add(_pubSignals, 32)))
+            
+            checkField(calldataload(add(_pubSignals, 64)))
+            
+
+            // Validate all evaluations
+            let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)
+
+            mstore(0, isValid)
+             return(0, 0x20)
+         }
+     }
+ }

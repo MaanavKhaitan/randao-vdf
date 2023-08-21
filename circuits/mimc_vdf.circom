@@ -1,7 +1,6 @@
 pragma circom 2.1.4;
 
-include "circomlib/poseidon.circom";
-include "circomlib/mimc.circom";
+include "./mimc.circom";
 // include "https://github.com/0xPARC/circom-secp256k1/blob/master/circuits/bigint.circom";
 
 template MiMCVDF (nrounds) {
@@ -26,9 +25,4 @@ template MiMCVDF (nrounds) {
     c <== mimc[nrounds-1].out;
 }
 
-component main { public [ a ] } = MiMCVDF(3000);
-
-/* INPUT = {
-    "a": "5",
-    "b": "77"
-} */
+component main { public [ a ] } = MiMCVDF(5000);
