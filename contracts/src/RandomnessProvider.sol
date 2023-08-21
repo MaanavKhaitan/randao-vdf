@@ -19,7 +19,6 @@ contract RandomnessProvider is IRandomnessProvider {
     error RequestedRandomnessFromPast(uint256);
     error RequestedZeroRandomValues();
 
-    // TODO: get the addresses from here: https://docs.axiom.xyz/transparency-and-security/contract-addresses
     /// @notice Sets the addresses of the contracts that store RANDAO values and verify the relevant VDF.
     /// @param _randaoStorage Address of the RANDAO storage contract.
     /// @param _vdfVerifier Address of the VDF verifier contract.

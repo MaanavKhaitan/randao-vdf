@@ -24,6 +24,7 @@ contract RANDAOStorage is Ownable {
 
     event UpdateAxiomAddress(address newAddress);
 
+    // TODO: get the Axiom address from here: https://docs.axiom.xyz/transparency-and-security/contract-addresses
     constructor(address _axiomAddress, uint32 _mergeBlock) {
         axiomAddress = _axiomAddress;
         mergeBlock = _mergeBlock;

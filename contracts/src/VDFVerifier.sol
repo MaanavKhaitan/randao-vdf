@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
-contract VerifyVDF {
+contract VDFVerifier {
   uint256 constant RSA_MODULUS_0 = 0x31f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5;
   uint256 constant RSA_MODULUS_1 = 0xbc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b31;
   uint256 constant RSA_MODULUS_2 = 0xf6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32;
