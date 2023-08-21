@@ -22,9 +22,9 @@ contract RandomnessProvider is IRandomnessProvider {
     /// @notice Sets the addresses of the contracts that store RANDAO values and verify the relevant VDF.
     /// @param _randaoStorage Address of the RANDAO storage contract.
     /// @param _vdfVerifier Address of the VDF verifier contract.
-    constructor(IRANDAOStorage _randaoStorage, IVDFVerifier _vdfVerifier, uint256 _nIterations) {
-        vdfVerifier = _vdfVerifier;
-        randaoStorage = _randaoStorage;
+    constructor(address _randaoStorage, address _vdfVerifier, uint256 _nIterations) {
+        randaoStorage = IRANDAOStorage(_randaoStorage);
+        vdfVerifier = IVDFVerifier(_vdfVerifier);
         nIterations = _nIterations;
     }
 

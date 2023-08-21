@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import { RANDAOStorage } from '../src/RANDAOStorage.sol';
 
-contract RANDAOStorageScript is Script {
+contract RANDAOStorageDeployScript is Script {
     function setUp() public {}
 
     function run() public {
