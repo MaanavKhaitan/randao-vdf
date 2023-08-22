@@ -10,9 +10,6 @@ contract RandomnessProvider is IRandomnessProvider {
     IVDFVerifier public vdfVerifier;
     IRANDAOStorage public randaoStorage;
 
-    uint256 nIterations;
-    uint256 internal constant VDF_OUTPUT_SIZE = 5;
-
     mapping(uint256 => uint256) public blockNumToVDFRandomness;
 
     error RandomnessNotAvailable(uint256);
@@ -22,28 +19,9 @@ contract RandomnessProvider is IRandomnessProvider {
     /// @notice Sets the addresses of the contracts that store RANDAO values and verify the relevant VDF.
     /// @param _randaoStorage Address of the RANDAO storage contract.
     /// @param _vdfVerifier Address of the VDF verifier contract.
-    constructor(address _randaoStorage, address _vdfVerifier, uint256 _nIterations) {
+    constructor(address _randaoStorage, address _vdfVerifier) {
         randaoStorage = IRANDAOStorage(_randaoStorage);
         vdfVerifier = IVDFVerifier(_vdfVerifier);
-        nIterations = _nIterations;
-    }
-
-    /// @notice Verifies and records the VDF output for a block.
-    /// @param blockNumber Block number for which the VDF was calculated.
-    function submitVDFRandomness(
-        uint256 blockNumber,
-        uint256[VDF_OUTPUT_SIZE] calldata proofPublicInput
-    ) external {
-        // Verify this is a valid RANDAO for this block number
-        require(isValidRANDAO(blockNumber, extractRANDAO(proofPublicInput)), "Invalid randao for this block.");
-
-        // Verify that the VDF was calculated correctly
-        require(vdfVerifier.verify(proofPublicInput), "No valid proof provided.");
-
-        // extract the random value (the VDF output) and record it
-        uint256 randomness = extractVDFOutput(proofPublicInput);
-        blockNumToVDFRandomness[blockNumber] = randomness;
-        emit RandomnessFulfilled(blockNumber, randomness);
     }
 
     /// @notice Function to be called when a user requests randomness.
@@ -59,6 +37,27 @@ contract RandomnessProvider is IRandomnessProvider {
         }
 
         emit RandomnessRequested(msg.sender, targetBlockNum);
+    }
+
+    /// @notice Verifies and records the VDF output for a block.
+    /// @param blockNumber Block number for which the VDF was calculated.
+    function submitVDFRandomness(
+        uint256 blockNumber,
+        uint[2] calldata _pA,
+        uint[2][2] calldata _pB,
+        uint[2] calldata _pC,
+        uint[2] calldata _pubSignals
+    ) external {
+        // Verify this is a valid RANDAO for this block number
+        require(isValidRANDAO(blockNumber, extractRANDAO(_pubSignals)), "Invalid randao for this block.");
+
+        // Verify that the VDF was calculated correctly
+        require(vdfVerifier.verifyProof(_pA, _pB, _pC, _pubSignals), "No valid proof provided.");
+
+        // extract the random value (the VDF output) and record it
+        uint256 randomness = extractVDFOutput(_pubSignals);
+        blockNumToVDFRandomness[blockNumber] = randomness;
+        emit RandomnessFulfilled(blockNumber, randomness);
     }
 
     /// @notice Fetch the VDF generated random value tied to a specific block
@@ -84,14 +83,12 @@ contract RandomnessProvider is IRandomnessProvider {
     }
 
     /// @notice Extracts the RANDAO value from the output struct of the VDF function
-    function extractRANDAO(uint256[VDF_OUTPUT_SIZE] calldata proofPublicInput) internal pure returns (uint256) {
-        // TODO: this is a stub. find the correct index
-        return proofPublicInput[0];
+    function extractRANDAO(uint[2] calldata _pubSignals) internal pure returns (uint256) {
+        return _pubSignals[1];
     }
 
     /// @notice Extracts the VDF output from the output struct of the VDF function
-    function extractVDFOutput(uint256[VDF_OUTPUT_SIZE] calldata proofPublicInput) internal pure returns (uint256) {
-        // TODO: this is a stub. find the correct index
-        return proofPublicInput[0];
+    function extractVDFOutput(uint[2] calldata _pubSignals) internal pure returns (uint256) {
+        return _pubSignals[0];
     }
 }

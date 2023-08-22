@@ -10,17 +10,19 @@ import {IAxiomV1} from "./utils/IAxiomV1.sol";
 import {Ownable} from "./utils/Ownable.sol";
 import {RLPReader} from "./utils/RLPReader.sol";
 
-contract RANDAOStorage is Ownable {
+import {IRANDAOStorage} from "./interface/IRANDAOStorage.sol";
+
+contract RANDAOStorage is Ownable, IRANDAOStorage {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for bytes;
 
     IAxiomV1 public axiomV1Contract;
-    uint32 public mergeBlock;
+    uint256 public mergeBlock;
 
     // mapping between blockNumber and prevRandao
-    mapping(uint32 => uint256) public prevRandaos;
+    mapping(uint256 => uint256) public prevRANDAOs;
 
-    event RandaoProof(uint32 blockNumber, uint256 prevRandao);
+    event RandaoProof(uint256 blockNumber, uint256 prevRandao);
 
     event UpdateAxiomAddress(address newAddress);
 
@@ -33,22 +35,33 @@ contract RANDAOStorage is Ownable {
 
     // TODO: A script will be calling this function
     // Starter code for the script: https://cryptomarketpool.com/send-a-transaction-to-the-ethereum-blockchain-using-python-and-web3-py/
-    function verifyRandao(IAxiomV1.BlockHashWitness calldata witness, bytes calldata header) external {
-        if (block.number - witness.blockNumber <= 256) {
-            require(
-                axiomV1Contract.isRecentBlockHashValid(witness.blockNumber, witness.claimedBlockHash),
-                "Block hash was not validated in cache"
-            );
-        } else {
-            require(axiomV1Contract.isBlockHashValid(witness), "Block hash was not validated in cache");
-        }
+    function verifyRANDAO(IAxiomV1.BlockHashWitness calldata witness, bytes calldata header) external {
+        // if (block.number - witness.blockNumber <= 256) {
+        //     require(
+        //         axiomV1Contract.isRecentBlockHashValid(witness.blockNumber, witness.claimedBlockHash),
+        //         "Block hash was not validated in cache"
+        //     );
+        // } else {
+        //     require(axiomV1Contract.isBlockHashValid(witness), "Block hash was not validated in cache");
+        // }
 
         require(witness.blockNumber > mergeBlock, "prevRandao is not valid before merge block");
 
+        // TODO: verify that the header actually hashes to the block hash in the Axiom contract
         RLPReader.RLPItem[] memory headerItems = header.toRlpItem().toList();
         uint256 prevRandao = headerItems[13].toUint();
 
-        prevRandaos[witness.blockNumber] = prevRandao;
+        prevRANDAOs[witness.blockNumber] = prevRandao;
         emit RandaoProof(witness.blockNumber, prevRandao);
     }
+
+    function getRANDAO(uint256 blockNum) external view returns (uint256) {
+        uint256 prevRANDAO = prevRANDAOs[blockNum];
+
+        // we want the queried RANDAO value to have been submitted earlier
+        require(prevRANDAO != 0);
+
+        return prevRANDAO;
+    }
+    
 }

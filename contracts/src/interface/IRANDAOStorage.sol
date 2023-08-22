@@ -7,5 +7,5 @@ pragma solidity ^0.8.16;
 /// @notice Interface for contracts providing randomness.
 interface IRANDAOStorage {
     /// @notice Returns the RANDAO value for the requested block
-    function getRANDAO(uint256 blockNum) external pure returns (uint256);
+    function getRANDAO(uint256 blockNum) external view returns (uint256);
 }
