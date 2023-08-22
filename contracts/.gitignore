@@ -4,6 +4,7 @@ cache/
 broadcast/
 Cargo.lock
 node_modules/
+artifacts/
 
 # Circuit files
 circuits/proofs/
