@@ -36,14 +36,14 @@ contract RANDAOStorage is Ownable, IRANDAOStorage {
     // TODO: A script will be calling this function
     // Starter code for the script: https://cryptomarketpool.com/send-a-transaction-to-the-ethereum-blockchain-using-python-and-web3-py/
     function verifyRANDAO(IAxiomV1.BlockHashWitness calldata witness, bytes calldata header) external {
-        if (block.number - witness.blockNumber <= 256) {
-            require(
-                axiomV1Contract.isRecentBlockHashValid(witness.blockNumber, witness.claimedBlockHash),
-                "Block hash was not validated in cache"
-            );
-        } else {
-            require(axiomV1Contract.isBlockHashValid(witness), "Block hash was not validated in cache");
-        }
+        // if (block.number - witness.blockNumber <= 256) {
+        //     require(
+        //         axiomV1Contract.isRecentBlockHashValid(witness.blockNumber, witness.claimedBlockHash),
+        //         "Block hash was not validated in cache"
+        //     );
+        // } else {
+        //     require(axiomV1Contract.isBlockHashValid(witness), "Block hash was not validated in cache");
+        // }
 
         require(witness.blockNumber > mergeBlock, "prevRandao is not valid before merge block");
 
