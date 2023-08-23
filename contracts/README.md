@@ -68,4 +68,10 @@ npx hardhat run --network localhost scripts/deployRandomnessProvider.js
 **NOTE:** after you deploy the `RANDAOStorage` and `VDFVerifier` contracts, you should edit their addresses in the `deployRandomnessProvider.js` script.
 
 4. Test and interact with the contracts
+
 I've added a script in `contracts/scripts/index.js` which can be used to interact with the smart contracts and call the functions in the contracts. You can edit the contract addresses and add more functions here.
+
+To run `index.js`, you can use:
+```
+npx hardhat run --network localhost ./scripts/index.js
+```
