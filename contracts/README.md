@@ -41,3 +41,31 @@ What we tried last:
 ```
 cast call 0x5fbdb2315678afecb367f032d93f642f64180aa3 "verifyRANDAO({uint32, bytes32, bytes32, uint32, bytes32[10]}, bytes)()" [16509301, 0x034ca3921f2ab605c8681288ba4c9818978a12e69c57e82350301fb58e1a9a6b, 0xf21f9ac46b21ce128bf245ac8c5dcd12ab1bf6a0cb0e3c7dc4d33cc8871d8ab3, 1024, [0x1 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9 0x10]] 0x100
 ```
+
+
+
+# Testing contracts with Hardhat
+
+1. Install dependencies
+```
+cd contracts
+npm install
+```
+
+2. Run a Hardhat node
+```
+npx hardhat node
+```
+
+3. Compile and deploy contracts
+```
+npx hardhat compile
+npx hardhat run --network localhost scripts/deployRANDAOStorage.js
+npx hardhat run --network localhost scripts/deployVDFVerifier.js
+npx hardhat run --network localhost scripts/deployRandomnessProvider.js
+```
+
+**NOTE:** after you deploy the `RANDAOStorage` and `VDFVerifier` contracts, you should edit their addresses in the `deployRandomnessProvider.js` script.
+
+4. Test and interact with the contracts
+I've added a script in `contracts/scripts/index.js` which can be used to interact with the smart contracts and call the functions in the contracts. You can edit the contract addresses and add more functions here.
