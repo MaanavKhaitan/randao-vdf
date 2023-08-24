@@ -1,3 +1,4 @@
+// @ts-ignore
 import { groth16 } from "snarkjs";
 
 // TODO: maybe use groth16.fullProve directly?

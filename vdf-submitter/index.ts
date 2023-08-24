@@ -18,41 +18,46 @@ const settings = {
   network: Network.ETH_GOERLI, // Replace with your network.
 };
 
-const alchemy = new Alchemy(settings);
+async function main() { 
+  const alchemy = new Alchemy(settings);
 
-// Read the JSON file
-const randomnessProviderData = fs.readFileSync(ABI_FILE_PATH, 'utf-8');
-// Parse the JSON data
-const randomnessProviderContract = JSON.parse(randomnessProviderData);
+  // Read the JSON file
+  const randomnessProviderData = fs.readFileSync(ABI_FILE_PATH, 'utf-8');
+  // Parse the JSON data
+  const randomnessProviderContract = JSON.parse(randomnessProviderData);
 
-// Provider
-const alchemyProvider = new ethers.AlchemyProvider("goerli", process.env.ALCHEMY_API_KEY);
+  // Provider
+  const alchemyProvider = new ethers.AlchemyProvider("goerli", "your-api-key");
 
-// Signer
-const walletAddress = process.env.PRIVATE_KEY || "";
-const signer = new ethers.Wallet(walletAddress, alchemyProvider);
+  // Signer
+  const signer = new ethers.Wallet("your-private-key", alchemyProvider);
 
-// Contract
-const randomnessProvider = new ethers.Contract(RANDOMNESS_PROVIDER_ADDRESS, randomnessProviderContract.abi, signer);
+  // Contract
+  const randomnessProvider = new ethers.Contract(RANDOMNESS_PROVIDER_ADDRESS, randomnessProviderContract.abi, signer);
 
-// calculate the VDF and generate a proof
-const [vdfProof, vdfPublicSignals] = await generateProof(
-    { a: BigInt },
-    VDF_WASM_FILE_PATH,
-    VDF_ZKEY_FILE_PATH
-);
+  // calculate the VDF and generate a proof
+  const [vdfProof, vdfPublicSignals] = await generateProof(
+      { a: 25, b: 77 },
+      VDF_WASM_FILE_PATH,
+      VDF_ZKEY_FILE_PATH
+  );
 
-console.log("vdfProof", vdfProof);
-console.log("vdfPublicSignals", vdfPublicSignals);
+  console.log("vdfProof", vdfProof);
+  console.log("vdfPublicSignals", vdfPublicSignals);
 
-// const tx = await randomnessProvider.submitVDFRandomness(
-//   BLOCK_NUMBER,
-  
-// );
+  const tx = await randomnessProvider.submitVDFRandomness(
+    BLOCK_NUMBER,
+    vdfProof[0],
+    vdfProof[1],
+    vdfProof[2],
+    vdfPublicSignals
+  );
 
-// console.log(tx);
-// await tx.wait();
+  await tx.wait();
 
+}
+
+main();
 
 
 
