@@ -1,52 +1,58 @@
 // Setup: npm install alchemy-sdk
 import { Alchemy, BlockTag, Network } from "alchemy-sdk";
+import { Axiom, AxiomConfig } from "@axiom-crypto/core";
+import * as fs from "fs";
+import { ethers } from "ethers";
 
+const API_KEY = process.env.API_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+
+const config: AxiomConfig = {
+    providerUri: "",
+    version: "v1",
+};
+const ax = new Axiom(config);
+
+const blockHashWitness = await ax.block.getBlockHashWitness(8381173);
+console.log(blockHashWitness);
 const settings = {
-  apiKey: process.env.ALCHEMY_API_KEY, // Replace with your Alchemy API Key.
+  apiKey: "", // Replace with your Alchemy API Key.
   network: Network.ETH_GOERLI, // Replace with your network.
 };
 
 const alchemy = new Alchemy(settings);
+const rlpHeader = await ax.block.getBlockRlpHeader(8381173);
+console.log(rlpHeader);
 
-// This is the "randomnessRequested" event topic we want to watch.
-const randomnessRequestedTopic = "";
-// This is the contract we want to watch.
-const contractAddress = "";
+// Read the JSON file
+const storageData = fs.readFileSync("../contracts/artifacts/contracts/RANDAOStorage.sol/RANDAOStorage.json", 'utf-8');
+// Parse the JSON data
+const storageContract = JSON.parse(storageData);
 
-// Create the log options object.
-const randomnessRequestedEvents = {
-    address: contractAddress,
-    topics: [randomnessRequestedTopic],
-  };
+// Read the JSON file
+const verifierData = fs.readFileSync("../contracts/artifacts/contracts/VDFVerifier.sol/Groth16Verifier.json", 'utf-8');
+// Parse the JSON data
+const verifierContract = JSON.parse(verifierData);
 
-let blocksRequested: number[] = [];
-  
-const recordRandomnessRequested = (txn: any) => {
-    // TODO: Get the block number from the randomness request.
-    let blockNumber = 420;
+// Read the JSON file
+const providerData = fs.readFileSync("../contracts/artifacts/contracts/RandomnessProvider.sol/RandomnessProvider.json", 'utf-8');
+// Parse the JSON data
+const providerContract = JSON.parse(providerData);
 
-    // If we haven't already seen this block number, add it to the list.
-    if (!blocksRequested.includes(blockNumber)) {
-      blocksRequested.push(blockNumber);
-      console.log(`Randomness requested in block ${blockNumber}`);
-    }
-};
+// Provider
+const alchemyProvider = new ethers.AlchemyProvider("goerli", "");
 
-// Listen for randomnessRequested events.
-alchemy.ws.on(randomnessRequestedEvents, recordRandomnessRequested);
+// Signer
+const signer = new ethers.Wallet("", alchemyProvider);
 
-// Subscription for new blocks.
-alchemy.ws.on("block", async (blockNumber) => {
-    console.log("The latest block number is", blockNumber);
-    if (blocksRequested.includes(blockNumber)) {
-        let number: BlockTag = blockNumber;
-        let response = await alchemy.core.getBlock(number)
+// Contract
+const randaoStorageContract = new ethers.Contract("0x21F9B303B83bBDAA4a2bD57d033c2f3c21dF9CED", storageContract.abi, signer);
 
-        //Logging the RANDAO
-        console.log(response.difficulty);
+const tx = await randaoStorageContract.verifyRANDAO(blockHashWitness, `${rlpHeader}`);
+console.log(tx);
+await tx.wait();
 
-        // TODO: Submit a transaction onchain to provide the RANDAO to the contract
-        console.log("Fulfilled randomness for block", blockNumber);
-    }
-}
-);
+// const randomnessProviderContract = new ethers.Contract("0x4a191E11Ff6b14FbcB1ccC3a61c5a9D80814cd22", providerContract.abi, signer);
+// const tx = await randomnessProviderContract.requestRandomness(9971613);
+// console.log(tx);
