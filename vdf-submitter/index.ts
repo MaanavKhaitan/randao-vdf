@@ -1,78 +1,105 @@
-// Setup: npm install alchemy-sdk
-import { Alchemy, BlockTag, Network } from "alchemy-sdk";
+import { Alchemy, BlockTag, Network, Utils, Wallet } from "alchemy-sdk";
+import { generateProof } from "./utils/snark-utils";
+import * as fs from "fs";
+import { ethers } from "ethers";
 
-const MOVE_WASM_FILE_PATH = "circuits/mimc_vdf.wasm";
-const MOVE_ZKEY_FILE_PATH = "circuits/mimc_vdf.zkey";
+// changes for each run of the script
+const BLOCK_NUMBER = 12;
+
+const VDF_WASM_FILE_PATH = "utils/mimc_vdf.wasm";
+const VDF_ZKEY_FILE_PATH = "utils/mimc_vdf.zkey";
+
+const ABI_FILE_PATH = '../contracts/artifacts/contracts/RandomnessProvider.sol/RandomnessProvider.json';
+
+const RANDOMNESS_PROVIDER_ADDRESS = "0x1111111111111111111111111111111111111111111"
 
 const settings = {
-  apiKey: process.env.ALCHEMY_API_KEY, // Replace with your Alchemy API Key.
+  apiKey: "", // Replace with your Alchemy API Key.
   network: Network.ETH_GOERLI, // Replace with your network.
 };
 
 const alchemy = new Alchemy(settings);
 
-// This is the "randomnessRequested" event topic we want to watch.
-const randomnessRequestedTopic = "";
-// This is the contract we want to watch.
-const contractAddress = "";
+// Read the JSON file
+const randomnessProviderData = fs.readFileSync(ABI_FILE_PATH, 'utf-8');
+// Parse the JSON data
+const randomnessProviderContract = JSON.parse(randomnessProviderData);
 
-// Create the log options object.
-const randomnessRequestedEvents = {
-    address: contractAddress,
-    topics: [randomnessRequestedTopic],
-  };
+// Provider
+const alchemyProvider = new ethers.AlchemyProvider("goerli", process.env.ALCHEMY_API_KEY);
 
-let blocksRequested: number[] = [];
-  
-const recordRandomnessRequested = (txn: any) => {
-    // TODO: Get the block number from the randomness request.
-    let blockNumber = 420;
+// Signer
+const walletAddress = process.env.PRIVATE_KEY || "";
+const signer = new ethers.Wallet(walletAddress, alchemyProvider);
 
-    // If we haven't already seen this block number, add it to the list.
-    if (!blocksRequested.includes(blockNumber)) {
-      blocksRequested.push(blockNumber);
-      console.log(`Randomness requested in block ${blockNumber}`);
-    }
-};
+// Contract
+const randomnessProvider = new ethers.Contract(RANDOMNESS_PROVIDER_ADDRESS, randomnessProviderContract.abi, signer);
 
-// Listen for randomnessRequested events.
-alchemy.ws.on(randomnessRequestedEvents, recordRandomnessRequested);
-
-// Subscription for new blocks.
-alchemy.ws.on("block", async (blockNumber) => {
-    console.log("The latest block number is", blockNumber);
-    if (blocksRequested.includes(blockNumber)) {
-        let number: BlockTag = blockNumber;
-        let response = await alchemy.core.getBlock(number)
-
-        //Logging the RANDAO
-        console.log(response.difficulty);
-
-        // TODO: Submit a transaction onchain to provide the RANDAO to the contract
-        console.log("Fulfilled randomness for block", blockNumber);
-    }
-}
+// calculate the VDF and generate a proof
+const [vdfProof, vdfPublicSignals] = await generateProof(
+    { a: BigInt },
+    VDF_WASM_FILE_PATH,
+    VDF_ZKEY_FILE_PATH
 );
 
-async function prepareVDFProof(
-  a: BigInt,
-  c: BigInt
-) {
-  // player 1 starts by making a move
-  const moveCircuitInputs = {
-      xOld: gameState.x,
-      yOld: gameState.y,
-      saltOld: gameState.salt,
-      posHashOld: gameState.posHash,
-      xNew: xNew,
-      yNew: yNew,
-      saltNew: saltNew
-  }
-  const [moveProof, movePublicSignals] = await generateProof(
-      moveCircuitInputs,
-      MOVE_WASM_FILE_PATH,
-      MOVE_ZKEY_FILE_PATH
-  );
+console.log("vdfProof", vdfProof);
+console.log("vdfPublicSignals", vdfPublicSignals);
 
-  return [moveProof, movePublicSignals];
-}
+// const tx = await randomnessProvider.submitVDFRandomness(
+//   BLOCK_NUMBER,
+  
+// );
+
+// console.log(tx);
+// await tx.wait();
+
+
+
+
+
+
+
+
+
+// import { Alchemy, BlockTag, Network, Utils, Wallet } from "alchemy-sdk";
+// import { generateProof } from "./utils/snark-utils";
+
+// const VDF_WASM_FILE_PATH = "utils/mimc_vdf.wasm";
+// const VDF_ZKEY_FILE_PATH = "utils/mimc_vdf.zkey";
+
+// const RANDOMNESS_PROVIDER_ADDRESS = "0x1111111111111111111111111111111111111111111"
+
+// const settings = {
+//   apiKey: process.env.ALCHEMY_API_KEY, // Replace with your Alchemy API Key.
+//   network: Network.ETH_GOERLI, // Replace with your network.
+// };
+
+// const alchemy = new Alchemy(settings);
+// const wallet = new Wallet(process.env.PRIVATE_KEY, alchemy);
+
+// // calculate the VDF and generate a proof
+// const [vdfProof, vdfPublicSignals] = await generateProof(
+//     { a: BigInt },
+//     VDF_WASM_FILE_PATH,
+//     VDF_ZKEY_FILE_PATH
+// );
+
+// // prepare the transaction
+// const transaction = {
+//   to: RANDOMNESS_PROVIDER_ADDRESS,
+//   value: Utils.parseEther("0.001"),
+//   gasLimit: "21000",
+//   maxPriorityFeePerGas: Utils.parseUnits("5", "gwei"),
+//   maxFeePerGas: Utils.parseUnits("20", "gwei"),
+//   nonce: await alchemy.core.getTransactionCount(wallet.getAddress()),
+//   type: 2,
+//   chainId: 5, // Corresponds to ETH_GOERLI
+// };
+
+// const rawTransaction = await wallet.signTransaction(transaction);
+// await alchemy.transact.sendTransaction(rawTransaction);
+
+// https://docs.alchemy.com/reference/using-the-alchemy-sdk#how-to-send-a-transaction-to-the-blockchain
+// wallet: https://stackoverflow.com/questions/75101978/re-send-a-transaction-using-alchemy-to-speed-up-erc20-transaction
+// https://ethereum.stackexchange.com/questions/145266/not-able-to-send-transaction-using-alchemy-sdk
+// :( https://www.alchemy.com/blog/goerli-faucet-deprecation
