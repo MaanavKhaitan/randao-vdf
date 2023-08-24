@@ -6,15 +6,15 @@ import { ethers } from "ethers";
 // changes for each run of the script
 const BLOCK_NUMBER = 12;
 
-const VDF_WASM_FILE_PATH = "utils/mimc_vdf.wasm";
-const VDF_ZKEY_FILE_PATH = "utils/mimc_vdf.zkey";
+const VDF_WASM_FILE_PATH = "./utils/mimc_vdf.wasm";
+const VDF_ZKEY_FILE_PATH = "./utils/mimc_vdf_final.zkey";
 
 const ABI_FILE_PATH = '../contracts/artifacts/contracts/RandomnessProvider.sol/RandomnessProvider.json';
 
-const RANDOMNESS_PROVIDER_ADDRESS = "0x1111111111111111111111111111111111111111111"
+const RANDOMNESS_PROVIDER_ADDRESS = "0x9349408CA4FB99090e3B6BdbB38b8bf15f2d08Fe"
 
 const settings = {
-  apiKey: "", // Replace with your Alchemy API Key.
+  apiKey: "your-api-key", // Replace with your Alchemy API Key.
   network: Network.ETH_GOERLI, // Replace with your network.
 };
 
@@ -37,7 +37,7 @@ async function main() {
 
   // calculate the VDF and generate a proof
   const [vdfProof, vdfPublicSignals] = await generateProof(
-      { a: 25, b: 77 },
+      { a: 5, b: 77 },
       VDF_WASM_FILE_PATH,
       VDF_ZKEY_FILE_PATH
   );
@@ -54,7 +54,6 @@ async function main() {
   );
 
   await tx.wait();
-
 }
 
 main();
