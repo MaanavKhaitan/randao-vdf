@@ -18,3 +18,4 @@ circuits/single_block_header_zkp/input.json
 *.zkey
 
 .DS_Store
+.env
