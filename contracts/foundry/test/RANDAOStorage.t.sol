@@ -10,7 +10,7 @@ contract RandaoTest is Test {
     address AXIOM_ADDRESS = 0x01d5b501C1fc0121e1411970fb79c322737025c2;
 
     function testVerifyRandaoRecent() public {
-        vm.createSelectFork("mainnet", 16_509_500);
+        // vm.createSelectFork("goerli", 16_509_500);
 
         // Import test proof and instance calldata
         string[] memory inputs = new string[](2);
@@ -38,13 +38,13 @@ contract RandaoTest is Test {
         });
         uint256 prevRandao = 0xa97f47e048f1ddf11b7a8d2c265014cfcec2506d765a393406f6046960d059dc;
 
-        Randao randao = new Randao(AXIOM_ADDRESS, 15537393);
-        randao.verifyRandao(testBlock, proof);
-        require(randao.prevRandaos(testBlock.blockNumber) == prevRandao, "prevRandao not verified");
+        RANDAOStorage randao = new RANDAOStorage(AXIOM_ADDRESS, 18);
+        randao.verifyRANDAO(testBlock, proof);
+        require(randao.prevRANDAOs(testBlock.blockNumber) == prevRandao, "prevRandao not verified");
     }
 
     function testVerifyRandaoOld() public {
-        vm.createSelectFork("mainnet", 16_513_500);
+        // vm.createSelectFork("goerli", 16_513_500);
 
         // Import block header RLP as calldata
         string[] memory inputs = new string[](2);
@@ -72,8 +72,8 @@ contract RandaoTest is Test {
         });
         uint256 prevRandao = 0xa97f47e048f1ddf11b7a8d2c265014cfcec2506d765a393406f6046960d059dc;
 
-        Randao randao = new Randao(AXIOM_ADDRESS, 15537394);
-        randao.verifyRandao(testBlock, headerRlp);
-        require(randao.prevRandaos(testBlock.blockNumber) == prevRandao, "prevRandao not verified");
+        RANDAOStorage randao = new RANDAOStorage(AXIOM_ADDRESS, 18);
+        randao.verifyRANDAO(testBlock, headerRlp);
+        require(randao.prevRANDAOs(testBlock.blockNumber) == prevRandao, "prevRandao not verified");
     }
 }
