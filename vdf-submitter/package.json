@@ -1,0 +1,19 @@
+{
+  "name": "vdf-submitter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^20.5.1",
+    "alchemy-sdk": "^2.9.2",
+    "ethers": "^6.7.1"
+  },
+  "devDependencies": {
+    "snarkjs": "^0.7.0"
+  }
+}
